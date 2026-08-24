@@ -1,6 +1,6 @@
 # Dynatrace Technical Reference Guide
  
-> **Last verified against docs.dynatrace.com:** July 15, 2026
+> **Last verified against docs.dynatrace.com:** 2026-08-24
 > **Staleness policy:** Dynatrace ships new features roughly every 2 weeks. Treat anything in this file older than ~90 days, or anything version-specific (Operator versions, Kubernetes/OpenShift support windows, API scopes, UI navigation paths), as a starting hypothesis rather than fact. Before relying on it for a customer-facing answer, verify against docs.dynatrace.com, dynatrace.com/blog, or the API Explorer. If the live source contradicts this file, the live source wins; flag the discrepancy rather than silently defaulting to whichever came first in context.
  
 ## Core Architecture
@@ -70,11 +70,11 @@
 ## Dynatrace API v2
  
 ### Authentication
-- **OAuth 2.0 tokens** required for all endpoints.
-- **Scopes**: Tokens grant specific permissions (e.g., `storage:events:read`, `metrics.read`, `documents:read`).
-- **Token creation**: Go to Access Tokens; select specific scopes per use case.
-- **Authorization header**: `Authorization: Api-Token <your-token>`.
-- **API Explorer**: Access via `https://{environment-id}.live.dynatrace.com/rest-api-doc/`.
+Dynatrace has two API generations with different auth models — mixing them is the most common cause of 401 errors:
+- **Classic APIs** (`/api/v2/...` on `.live.dynatrace.com`): Use **API Tokens** with `Authorization: Api-Token <token>`. Scopes use dot or colon notation (e.g., `metrics.ingest`, `logs.ingest`, `storage:entities:read`). Created in Settings > Access Tokens.
+- **Platform APIs** (`/platform/...` on `.apps.dynatrace.com`) and the Grail Query API: Use **platform tokens** or **OAuth 2.0 access tokens** with `Authorization: Bearer <token>`. Scopes use dot notation (e.g., `storage:events:read`, `document:read`).
+- **API Explorer**: `https://{environment-id}.live.dynatrace.com/rest-api-doc/` (classic); `/ui/api-explorer` for platform APIs.
+- **Full auth decision tree**: See the API Quick Reference file ("Two API Generations" section).
 ### Key Endpoint Categories
  
 #### Metrics API v2
@@ -94,7 +94,7 @@
 - **Content-Type**: application/json.
 #### Business Events API
 - **POST /api/v2/bizevents/ingest**: Ingest business-context events (order placed, checkout completed, etc.); distinct from the operational Events API v2 above.
-- **Scope**: `bizevents:ingest`.
+- **Scope**: `bizevents.ingest`.
 - **Billing note**: Ingestion consumes Davis Data Units (DDUs) from the logs/business-events pool.
 #### OpenTelemetry (OTLP) Endpoints
 - **Base URL**: `https://{environment-id}.live.dynatrace.com/api/v2/otlp`.
@@ -333,7 +333,7 @@ kubectl exec -n dynatrace deployment/dynatrace-operator -- dynatrace-operator su
 - **Real-time topology model**: Automatically maps applications, infrastructure, cloud services, dependencies.
 - **Entity types**: Hosts, processes, services, service instances, databases, external services, applications.
 - **Relationship mapping**: 1:n and n:1 relationships (e.g., service runs_on host, host contains processes).
-- **On Grail transition**: Version 1.334+ recommends migration from classic entity model to Smartscape on Grail (dt.entity.* views).
+- **On Grail transition (2026)**: Dynatrace is migrating Smartscape storage to Grail in two stages. The `fetch dt.entity.*` DQL views were the first-generation Grail integration; the current direction is the new Smartscape on Grail model with dedicated commands `smartscapeNodes`, `smartscapeEdges`, and `traverse`. Both `dt.entity.*` and the new commands coexist during the transition. New queries should prefer `smartscapeNodes`; note that some entity type names differ between the two models (e.g., `CLOUD_APPLICATION_INSTANCE` → `K8S_POD`). See `dynatrace_dql_reference.md`, Part 2, for command syntax and the full mapping table.
 ### Service Dependency Mapping
 - **Automatic discovery**: No manual configuration; OneAgent discovers dependencies.
 - **Call paths**: Synchronous and asynchronous communication, queuing.
@@ -483,6 +483,8 @@ Both Bindplane and OpenPipeline transform observability data, but they operate a
 - **Use Bindplane** when your optimization goal is preventing data from leaving your infrastructure, or when you need to route data to multiple backends.
 - **Use OpenPipeline** when your optimization is about shaping data once it's in Dynatrace, or when you need Dynatrace-specific transformations like masking, enrichment, or field extraction.
 - **Use both** for comprehensive cost and security control: Bindplane drops/samples at source, OpenPipeline masks sensitive fields at ingest.
+**OpenPipeline configuration note:** The OpenPipeline Configurations API was deprecated on June 29, 2026. Configuration is now managed through the Settings API using `builtin:openpipeline.<scope>.*` schemas (e.g., `builtin:openpipeline.logs.routing`, `builtin:openpipeline.logs.pipelines`). The ingest endpoints themselves are unchanged. See the API Quick Reference file (OpenPipeline API section) for endpoint URLs and required scopes.
+
 See the Bindplane reference guide for Bindplane-specific architecture and setup details.
  
 ---
