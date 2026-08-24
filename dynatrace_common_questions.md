@@ -445,11 +445,7 @@ Example (pseudocode):
  
 ### Q: DQL query is timing out. How do I optimize it?
  
-**A:** Short version: reduce the time range, filter immediately after fetch, avoid transformations like `lower()` inside filters, use `samplingRatio` for large datasets, and place `sort` last.
- 
-**For the full decision tree, optimization checklist, and follow-up questions, see `dynatrace_dql_reference.md`, Part 3 (Performance and Troubleshooting).** That file is also the place to go for DQL syntax and Smartscape topology query questions, not just performance.
- 
-**Reference:** `dynatrace_dql_reference.md`.
+**A:** See `dynatrace_dql_reference.md`, Part 3 (Performance and Troubleshooting) — it has the full optimization checklist, decision tree, and follow-up questions. That file is also authoritative for DQL syntax and Smartscape topology queries.
  
 ---
  

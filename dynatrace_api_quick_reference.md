@@ -88,6 +88,7 @@ curl -X GET "https://{environment-id}.apps.dynatrace.com/platform/..." \
 | `storage:metrics:read` | Query metrics via DQL | `fetch metrics` in Notebooks / Query API |
 | `storage:events:read` | Query Davis AI events via DQL | `fetch dt.davis.events.snapshots` in Notebooks / Query API |
 | `storage:bizevents:read` | Query business events via DQL | `fetch bizevents` in Notebooks / Query API |
+| `storage:spans:read` | Query spans/traces via DQL | `fetch spans` in Notebooks / Query API |
 | `openTelemetryTrace.ingest` | Ingest traces via OTLP | `/api/v2/otlp/v1/traces` |
 | `events.ingest` | Ingest Davis/custom events | `/api/v2/events/ingest` |
 | `storage:entities:read` | Query monitored entities | `/api/v2/entities`, `fetch dt.entity.*` |
@@ -138,7 +139,7 @@ Poll repeatedly until the state is no longer `RUNNING`.
 **Required scopes:** Match the data type being queried: `storage:logs:read`, `storage:metrics:read`, `storage:events:read`, `storage:spans:read`, `storage:entities:read`, etc.
  
 **Notes:**
-- Default timeframe if unspecified: 2 hours (matches Notebooks default, not the 72-hour classic API default).
+- Default timeframe if unspecified: 2 hours (matches Notebooks default).
 - This is the correct API for any "pull Grail data programmatically" integration request. Don't reach for classic Metrics/Logs GET endpoints when the ask is DQL-shaped.
 - This section covers auth and the execute/poll transport only. For DQL syntax, Smartscape topology queries, or why a query itself is slow, see `dynatrace_dql_reference.md`, not this file.
 ---

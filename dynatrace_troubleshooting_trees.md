@@ -183,9 +183,10 @@ Is the API token valid?
 - **Platform API** (`/platform/...` on `.apps.dynatrace.com`) and Grail Query API: `Authorization: Bearer {token}` with a platform token or OAuth access token — not Api-Token
 - Mixing auth types is the most common 401 cause that scope checks don't catch; verify the API generation before checking scopes (see API Quick Reference "Two API Generations" section)
 - Content-Type header correct for endpoint (e.g., `text/plain; charset=utf-8` for metrics ingest)
-- URL uses correct base domain: `.live.dynatrace.com` for classic; `.apps.dynatrace.com` for platform
+- URL uses correct base domain: `.live.dynatrace.com` for classic; `.apps.dynatrace.com` for platform (SaaS — Dynatrace Managed uses a customer-controlled domain; confirm their actual base URL before testing)
 - Token is copied exactly as issued (no truncation, no added whitespace, no re-encoding); Dynatrace API tokens are opaque strings sent as-is in the header, not Basic Auth, so they should never be base64-encoded by the client
 **Follow-up questions to ask:**
+- Are you on SaaS or Dynatrace Managed? (Managed uses a different base domain)
 - What's the exact error message (401 vs 403)?
 - Which API endpoint are you calling?
 - Can you share (sanitized) the Authorization header?
@@ -220,7 +221,7 @@ Is ActiveGate running?
                   ├─ NO (firewall/outbound blocked) →
                   │  ├─ ActiveGate requires OUTBOUND to cluster on port 443
                   │  ├─ Check ActiveGate can resolve Dynatrace domain
-                  │  ├─ Test: curl https://{environment-id}.live.dynatrace.com/api/v2/... from ActiveGate
+                  │  ├─ Test: curl https://{environment-id}.live.dynatrace.com/api/v2/... from ActiveGate (SaaS URL — for Dynatrace Managed, use your Managed server's domain instead)
                   │  ├─ If behind proxy, configure proxy in ActiveGate config
                   │  └─ Check outbound firewall rules
                   │
