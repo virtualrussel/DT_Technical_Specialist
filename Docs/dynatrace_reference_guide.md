@@ -78,7 +78,7 @@ Most content in this guide assumes Dynatrace SaaS. Dynatrace Managed (customer-o
 - **Error analysis**: Identify exact location of error in call tree.
 - **Log correlation**: Logs in trace context show which service generated each log entry.
 ### Limitations
-- **Node limits**: OneAgent limits each trace to ~3000 span nodes to protect resources; excessive spans trigger truncation and a diagnostic message. This is a per-trace limit, distinct from the separate 3,000-traces-per-view limit (see "Distributed Traces View" under Common Feature Boundaries and Limitations).
+- **Node limits**: OneAgent limits each trace to 100,000 spans per trace in the single-trace perspective; excessive spans trigger truncation and a diagnostic message. This is a per-trace limit, distinct from the separate 10,000-requests-per-view limit (see "Distributed Traces View" under Common Feature Boundaries and Limitations).
 - **Data availability**: Older data beyond 10 days is not available in the detailed trace view.
 - **Diagnostic messages**: Indicate data loss, correlation failures, or capture issues (e.g., "Trace truncated due to node limit").
 ---
@@ -383,21 +383,20 @@ kubectl exec -n dynatrace deployment/dynatrace-operator -- dynatrace-operator su
 ### Trace Data
 - **Retention**: Detailed trace data retained 10 days; metric retention (see Metric Retention below) can extend well beyond that.
 - **Trace timeout**: 90 minutes; traces older than 90 minutes not added to.
-- **Node limits**: ~3000 span nodes per trace; excessive spans trigger truncation warnings. Distinct from the 3,000-traces-per-view limit (see Distributed Traces View below).
+- **Node limits**: 100,000 spans per trace (single-trace perspective); excessive spans trigger truncation warnings. Distinct from the 10,000-requests-per-view limit (see Distributed Traces View below).
 - **Sampling**: Adaptive traffic management reduces data sent under high load; some traces not available.
 ### Entity Query
 - **Selector limit**: 2000 characters max for entity selector string.
 - **Max returned**: 100 entities per query (paginate for larger results).
 - **Relationship limit**: 1:n relationships return max 100 entity IDs per record in DQL.
 ### Metric Retention
-- **1-minute resolution**: 7 days.
-- **1-hour resolution**: 400 days (approx. 13 months).
+- **Grail metrics (1-minute granularity)**: 15 months (462 days) by default; extendable to 10 years. No separate 1-hour rollup tier.
 - **Custom metrics**: Retention based on subscription tier.
 ### Log Storage
 - **Default bucket**: Logs stored in Grail; retention based on contract.
 - **EEC persistence**: 2136 MB required; logs queued locally if ActiveGate unavailable.
 ### Distributed Traces View
-- **Limit**: 3,000 most recent traces per view per timeframe/management zone.
+- **Limit**: 10,000 most recent requests/spans per view per timeframe/management zone.
 - **Search**: By trace ID, service name, attributes.
 - **Data availability**: Toggle "Show data retention" for visibility into retention boundaries.
 ---

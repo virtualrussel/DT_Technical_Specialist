@@ -97,8 +97,7 @@ kubectl exec deploy/dynatrace-operator -n dynatrace -- dynatrace-operator troubl
 |-----------|------------------|-------|
 | **Traces (detailed)** | 10 days | Full span data with code-level info |
 | **Trace metadata** | 90 minutes | Running traces timeout after 90 min |
-| **Metrics (1-min granularity)** | 7 days | High-resolution data |
-| **Metrics (1-hour granularity)** | 400 days (~13 months) | Aggregated view |
+| **Metrics (Grail, 1-min granularity)** | 15 months (462 days) | Default; extendable to 10 years; no separate 1-hour tier |
 | **Logs** | Contract-dependent | Configured per subscription |
 | **Custom metrics** | Per subscription tier | Varies |
  
@@ -114,8 +113,8 @@ kubectl exec deploy/dynatrace-operator -n dynatrace -- dynatrace-operator troubl
  
 | Limit | Value | Impact |
 |-------|-------|--------|
-| **Nodes per trace** | ~3000 span nodes | Excessive spans truncate; diagnostic message appears |
-| **Traces per view** | 3,000 most recent | Older traces don't appear in Distributed Traces view |
+| **Nodes per trace** | 100,000 spans (single-trace perspective) | Excessive spans truncate; diagnostic message appears |
+| **Traces per view** | 10,000 most recent | Older traces don't appear in Distributed Traces view |
 | **Entity selector string length** | 2,000 characters | Long selectors are rejected |
 | **1:n relationship records** | 100 entity IDs max | Relationship lookups cap at 100 |
 | **DQL data scan** | 500 GB default | Queries abort if they'd scan more (configurable) |
@@ -337,7 +336,7 @@ External source → [OneAgent or Bindplane or direct API] → OpenPipeline (inge
  
 **A:** Dynatrace truncates traces under two conditions:
  
-**1. Node limit exceeded (~3000 spans/trace):**
+**1. Node limit exceeded (100,000 spans/trace in single-trace perspective):**
 - Symptom: Diagnostic message "Trace truncated due to node limit"
 - Cause: Too many custom services, long chains of calls, or unusual topology
 - Fix: Reduce custom services, disable unnecessary OneAgent features, or contact Dynatrace if this is blocking root cause analysis
