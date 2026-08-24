@@ -1,6 +1,6 @@
 # Dynatrace Common Questions FAQ
  
-> **Last verified against docs.dynatrace.com:** July 15, 2026
+> **Last verified against docs.dynatrace.com:** 2026-08-24
 > **Staleness policy:** Pricing, licensing units, token scope names, and feature availability are the fastest-moving content in this file. Treat these as directional, not final. Confirm current scope names, retention numbers, and licensing terms against docs.dynatrace.com or the account team before quoting them to a customer in a pre-sales conversation.
  
 Pre-structured answers for the most frequently asked questions in pre-sales and incident response. Use these to provide consistent, accurate responses without re-deriving answers.
@@ -271,13 +271,51 @@ curl -X POST "https://{ag-host}:9999/api/v2/events/ingest" \
  
 ---
  
+### Q: What is OpenPipeline, and how does it fit into the data flow?
+
+**A:** OpenPipeline is Dynatrace's server-side, ingest-time data processing layer. Data arriving at Dynatrace (via OTLP, the classic ingest APIs, or the OpenPipeline ingest endpoints) passes through OpenPipeline before being written to Grail. This is where you configure parsing, enrichment, masking, routing, and field extraction rules that apply to every record of a given signal type.
+
+**Data flow:**
+```
+External source → [OneAgent or Bindplane or direct API] → OpenPipeline (ingest-time processing) → Grail (storage) → DQL (query)
+```
+
+**Key points:**
+- OpenPipeline is always present — it's the ingest layer for logs, events, bizevents, spans, and metrics, not an optional add-on.
+- Configuration used to be managed via the OpenPipeline Configurations API. That API was **deprecated June 29, 2026** — configuration now goes through the Settings API with `builtin:openpipeline.<scope>.*` schemas (e.g., `builtin:openpipeline.logs.routing`).
+- The OpenPipeline ingest endpoints (`/platform/ingest/v1/events`, `/platform/ingest/v1/events.sdlc`, etc.) use `.live.dynatrace.com` base URL and classic API tokens with `openpipeline.*` scopes — see the API Quick Reference file for the full endpoint and scope table.
+- "OpenPipeline processing" is not the same as "Bindplane pipeline." OpenPipeline runs inside Dynatrace after data arrives; Bindplane runs at or near the collection point before data leaves your network.
+
+**Reference:** API Quick Reference file (OpenPipeline API section); reference guide (OpenPipeline section).
+
+---
+
+### Q: OpenPipeline vs. Bindplane — which should I use?
+
+**A:** They operate at different points in the data path and are not mutually exclusive:
+
+| | OpenPipeline | Bindplane |
+|---|---|---|
+| **Where it runs** | Inside Dynatrace (server-side) | At the source, before data leaves your network |
+| **When it processes** | After data arrives at Dynatrace | Before data is sent to any backend |
+| **Primary use case** | Parsing, enrichment, masking, routing within Dynatrace | Filtering, reducing, and routing telemetry to multiple destinations |
+| **Multi-destination** | No (Dynatrace only) | Yes (Dynatrace, Datadog, Splunk, etc.) |
+| **Network egress reduction** | No (data already sent) | Yes (filter before sending) |
+| **Manages** | Ingest-time transforms on data already in Dynatrace | Which data gets sent to Dynatrace (and others) at all |
+
+**Decision rule:** If the goal is reducing how much data leaves your network or routing to multiple backends, use Bindplane (or use Bindplane to pre-filter before sending to Dynatrace, where OpenPipeline then handles further processing). If the goal is transforming or routing data that's already arriving at Dynatrace, use OpenPipeline. These are complementary, not competing.
+
+**Reference:** Bindplane reference file; API Quick Reference file (OpenPipeline API section).
+
+---
+
 ### Q: What token scopes do I need for different use cases?
  
 **A:** Common scopes per use case:
  
 | Use Case | Required Scopes |
 |----------|-----------------|
-| **Ingest custom metrics** | `metrics:write` |
+| **Ingest custom metrics** | `metrics.ingest` |
 | **Query metrics via DQL** | `storage:metrics:read` |
 | **Ingest logs** | `logs.ingest` |
 | **Query logs via DQL** | `storage:logs:read` |
@@ -478,7 +516,7 @@ Example (pseudocode):
  
 **A:** Ambiguous by default; ask which product before answering.
  
-- "The pipeline" or "the collector" could mean Bindplane's BDOT collector, Dynatrace OneAgent, or Dynatrace OpenPipeline. These are different products at different layers.
+- "The pipeline" or "the collector" could mean Bindplane's BDOT collector, Dynatrace OneAgent, or Dynatrace OpenPipeline. These are different products at different layers. See the OpenPipeline vs. Bindplane FAQ entry above for the architectural distinction.
 - "The agent," "investigations," or "findings" could mean Bluebox or Dynatrace's built-in Davis AI. These are related but have separate logins and data models.
 **Rule:** Confirm the product before troubleshooting; the diagnostic paths don't overlap.
  
