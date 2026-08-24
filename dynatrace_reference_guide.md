@@ -24,6 +24,22 @@
 - **Data in transit**: All communication encrypted with TLS 1.2+ (SSL Labs Grade A+).
 - **High availability**: 99.5% SLA with clustered architecture, multiple availability zones, automatic failover.
 - **Update cadence**: New features delivered every 2 weeks; OneAgent/ActiveGate auto-updates supported.
+
+### SaaS vs. Managed: When the Deployment Model Matters
+
+Most content in this guide assumes Dynatrace SaaS. Dynatrace Managed (customer-operated cluster) and dedicated cluster deployments differ in the following areas — always clarify which model the customer is on before answering questions in these categories:
+
+| Area | SaaS | Managed / Dedicated |
+|---|---|---|
+| **API base URL** | `{env-id}.live.dynatrace.com` / `{env-id}.apps.dynatrace.com` | Customer-controlled domain (e.g., `dynatrace.company.com`) |
+| **Cluster updates** | Dynatrace-managed, automatic, every 2 weeks | Customer-controlled schedule; may lag SaaS by weeks or months |
+| **OneAgent/ActiveGate updates** | Auto-update by default | Auto-update configurable; operator may pin versions |
+| **Feature availability** | Immediately available at launch | May require cluster upgrade to unlock new features |
+| **Data residency** | AWS, region varies by contract | Customer datacenter or private cloud |
+| **Cluster health** | Dynatrace responsibility | Customer responsibility; separate monitoring required |
+| **Grail availability** | Full Grail (all platform APIs) | Depends on Managed version; older Managed versions may lack Grail/DQL |
+
+**Key pre-sales ask:** "Are you on Dynatrace SaaS, Dynatrace Managed, or a dedicated cluster?" This determines which API URLs apply, whether platform APIs are available, and how update timelines work. If the customer is on Managed with a version significantly behind SaaS, documented behavior for platform features (Grail, DQL, OpenPipeline) may not apply to their environment yet.
 ---
  
 ## Data Collection and Storage
@@ -36,7 +52,7 @@
 - **Data retention**: Policy-based; default varies by data type (e.g., traces 10 days, metrics per retention tier).
 ### DQL (Dynatrace Query Language)
 - Read-only, pipe-based query language (`|`) against Grail data.
-- Covers core syntax and commands, data sources (logs, spans, events, entities, metrics), Smartscape topology/relationship queries, and performance/troubleshooting.
+- Covers core syntax and commands, data sources (`fetch logs`, `fetch spans`, `fetch bizevents` for business events, `fetch dt.davis.events.snapshots` for Davis AI events, `fetch metrics`, `fetch dt.entity.*` / `smartscapeNodes` for entities), Smartscape topology/relationship queries, and performance/troubleshooting.
 - **See `dynatrace_dql_reference.md` for the full, authoritative treatment** of all of the above; that file consolidates what used to be split across this section, Troubleshooting Tree 6, and the FAQ's DQL entry.
 ---
  

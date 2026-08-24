@@ -20,6 +20,7 @@ Use these decision trees to rapidly isolate and diagnose issues in pre-sales and
 | API returning 401/403 (any endpoint) | Tree 4 |
 | RUM / Digital Experience Monitoring data missing | Tree 7 |
 | Problem or alert not firing as expected | Tree 11 |
+| Synthetic monitor failing, wrong result, or private location offline | Tree 12 |
  
 ---
  
@@ -99,6 +100,7 @@ Is the latency in application code or I/O?
    │     ├─ Check host-level CPU/memory (OneAgent module overhead?)
    │     ├─ Check downstream service response times (dependency latency)
    │     ├─ Query for problems: fetch dt.entity.service | filter name == "YourService"
+   │     │  (or with new Smartscape model: smartscapeNodes SERVICE | filter displayName == "YourService")
    │     └─ Check service instance distribution (is traffic balanced?)
 ```
  
@@ -350,7 +352,26 @@ Did the ingest call actually succeed?
 │
 └─ Using OpenPipeline/processing rules? →
    ├─ Check if a processor is filtering, transforming, or dropping the record before storage
-   └─ Review OpenPipeline configuration for unintended match conditions
+   ├─ Step 1: Confirm which pipeline applies to this data type
+   │  ├─ OpenPipeline config is managed via Settings API (Configurations API deprecated June 29, 2026)
+   │  ├─ Schema: builtin:openpipeline.<scope>.* (e.g., builtin:openpipeline.logs.routing)
+   │  └─ In the UI: Settings > OpenPipeline > select signal type (Logs, Events, Business Events, etc.)
+   │
+   ├─ Step 2: Check routing rules — is the record reaching the right pipeline?
+   │  ├─ Routing rules run in order; first matching rule wins
+   │  ├─ A misconfigured rule silently routes records to a pipeline that drops them
+   │  └─ Test: temporarily add a "match all" rule at the top pointing to the default pipeline, re-ingest
+   │
+   ├─ Step 3: Check processors in the matching pipeline
+   │  ├─ Look for filter processors with conditions that unexpectedly match your record
+   │  ├─ Look for "drop record" actions — these silently discard records without an ingest error
+   │  ├─ Look for field transforms that change values your DQL query filters on
+   │  └─ Verify the pipeline's storage target is the bucket your DQL query targets
+   │
+   └─ Step 4: Check bucket routing
+      ├─ A record in the wrong Grail bucket won't appear in a query targeting the default bucket
+      ├─ Verify: fetch logs, bucket:"<suspected-bucket>" | filter <your-unique-field>
+      └─ If found in wrong bucket, fix the routing rule's storage target; data already written cannot be moved
 ```
  
 **Follow-up questions to ask:**
@@ -359,6 +380,8 @@ Did the ingest call actually succeed?
 - How long ago was the data sent?
 - Can you share the exact DQL query being used to look for it?
 - Is any OpenPipeline processing configured on this data type?
+- Which OpenPipeline pipeline and routing rule applies to this signal type?
+- Which Grail bucket is the data expected to land in?
 ---
  
 ## Tree 10: Custom Metric Ingestion Rejected or Limited
@@ -402,6 +425,7 @@ What does the ingest response say?
 Did Davis AI detect the underlying anomaly at all?
 │
 ├─ Check Problems feed / fetch dt.entity.service | filter name == "YourService" for related timeframe
+│  (or with new Smartscape model: smartscapeNodes SERVICE | filter displayName == "YourService")
 │
 ├─ NO problem raised →
 │  ├─ Is this a metric with a static threshold configured, or relying on Davis AI dynamic baselining?
@@ -430,6 +454,75 @@ Did Davis AI detect the underlying anomaly at all?
 - Can you confirm whether a Problem was created at all vs. the Problem existing but not notifying?
 ---
  
+## Tree 12: Synthetic Monitor Not Reporting Correctly
+
+**Symptom**: A browser or HTTP synthetic monitor is failing, returning unexpected results, not executing, or a private synthetic location is offline.
+
+**Assumptions**: You have synthetic monitoring configured (browser clickpath or HTTP monitor) in Dynatrace. If the monitor exists but data is not appearing at all, start here. If monitor data is appearing but you have questions about SLO configuration based on synthetic results, see the SLO section of the reference guide.
+
+```
+What is the monitor type?
+│
+├─ HTTP Monitor (lightweight API/endpoint check) →
+│  ├─ Is the monitor reporting a connection timeout?
+│  │  ├─ Check if the target URL is reachable from the synthetic location (not just from your network)
+│  │  ├─ Verify SSL certificate is valid and not expired (Dynatrace validates the cert chain)
+│  │  └─ Check if the target blocks known Dynatrace synthetic IPs (allowlist may be required for private endpoints)
+│  │
+│  ├─ Is the monitor returning an unexpected HTTP status code?
+│  │  ├─ Verify the expected status code in monitor configuration matches the actual endpoint behavior
+│  │  ├─ Check if the endpoint requires authentication (headers, cookies, or session tokens)
+│  │  └─ Check if a redirect is occurring (monitor may not follow redirects unless configured)
+│  │
+│  └─ Is the monitor returning an unexpected response body?
+│     ├─ Verify response validation rules (keyword checks, regex) match current response format
+│     └─ Check if the endpoint response changed (deployment, A/B test, or regionalized content)
+│
+└─ Browser Monitor (multi-step clickpath in real browser) →
+   ├─ Is the monitor failing to load the page at all?
+   │  ├─ Check if the target blocks Dynatrace synthetic IPs
+   │  ├─ Check Content Security Policy (CSP) — may block synthetic scripts
+   │  └─ Verify the URL is correct and accessible from the synthetic location
+   │
+   ├─ Is the monitor failing at a specific step?
+   │  ├─ Review the step screenshot and waterfall in the monitor execution detail
+   │  ├─ Check if a page element has changed (CSS selector, XPath, or element ID used in the script)
+   │  ├─ Check for timing issues — add wait/assertion steps if elements load asynchronously
+   │  └─ Check for popups/dialogs that block the scripted interaction
+   │
+   ├─ Is monitor execution slow without failing?
+   │  ├─ Check waterfall for slow third-party resources (ads, analytics, fonts)
+   │  ├─ Compare performance across synthetic locations (latency is location-dependent)
+   │  └─ Use Web Vitals tab to identify specific rendering bottlenecks
+   │
+   └─ Is the monitor configured but never executing?
+      ├─ Check monitor status: is it enabled and not paused?
+      ├─ Check maintenance window — an active maintenance window suppresses execution
+      └─ Check the assigned synthetic location (see below for private location issues)
+
+Private Synthetic Location offline or unreachable:
+├─ Is the ActiveGate serving the private location running?
+│  ├─ systemctl status dynatrace-activegate (Linux) or check Services (Windows)
+│  ├─ Check ActiveGate logs: /opt/dynatrace/gateway/log/
+│  └─ Verify ActiveGate can reach Dynatrace Cluster on port 443 outbound
+│
+├─ Is the location showing as "degraded" vs. "offline"?
+│  ├─ Degraded: location is running but experiencing failures; check ActiveGate health metrics
+│  └─ Offline: location has lost connectivity to Dynatrace; usually network or ActiveGate process issue
+│
+└─ Multiple monitors failing only from one private location → likely that location's issue, not the target
+   └─ Failover: temporarily assign the monitor to a public location to confirm the target is healthy
+```
+
+**Follow-up questions to ask:**
+- HTTP or browser monitor?
+- Which synthetic location(s) is the failure occurring from? (All, or only specific ones?)
+- When did the failure start? Any recent deployment or infrastructure change?
+- Is the monitor failure consistent or intermittent?
+- If private location: is the ActiveGate process running on the synthetic node?
+- Can you share the execution detail (screenshot, waterfall, step-by-step result)?
+---
+
 ## Quick Decision Matrix: When to Escalate to Dynatrace Support
  
 | Symptom | Severity | Escalate? |
@@ -447,6 +540,8 @@ Did Davis AI detect the underlying anomaly at all?
 | Custom metric ingestion silently dropped at scale | Medium | Yes if quota/cardinality limit suspected |
 | Workflow event trigger auto-disabled (rate limit) | Medium | No, adjust trigger filter first |
 | SLO burn rate alert never fires despite breaches | Medium | No, verify alert configuration first |
+| Private synthetic location offline after ActiveGate restart | High | Yes if not resolved by restart |
+| Browser monitor failing across all public locations on unchanged target | Medium | Yes if target is healthy and script is unchanged |
  
 ---
  
