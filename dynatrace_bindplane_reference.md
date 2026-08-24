@@ -1,6 +1,6 @@
 # Bindplane Technical Reference Guide (Dynatrace Acquisition)
  
-> **Last verified against docs.bindplane.com and docs.dynatrace.com:** July 15, 2026
+> **Last verified against docs.bindplane.com and docs.dynatrace.com:** 2026-08-24
 > **Staleness policy, read this before answering any Bindplane question:** This is the newest and fastest-moving file in the project. The acquisition closed April 15, 2026, roughly three months before this file's verification date. Dynatrace has stated it intends to "accelerate Bindplane's roadmap through increased investment and deeper integration with the Dynatrace platform." That integration is explicitly in progress, not finished. Do not assume unified billing, single sign-on with Dynatrace accounts, in-Dynatrace-UI configuration of pipelines, or any other roadmap item has shipped unless you verify it against current docs.bindplane.com, docs.dynatrace.com, or dynatrace.com/blog first. Bindplane retains its own console, documentation site, and (as of this writing) standalone product identity. Treat every claim about "how integrated" the products are as something to verify fresh, every time, regardless of what this file says.
  
 ---
@@ -43,7 +43,7 @@ This is conceptually adjacent to, but distinct from, Dynatrace OpenPipeline. Ope
 - **Two operating modes** (not manually configured, implicit based on what sources are attached):
   - **Agent mode:** collector runs on the host it's monitoring (e.g., a database host, an API server) and collects locally.
   - **Gateway mode:** collector receives telemetry from *other* collectors over the network (e.g., via an OTLP or "Bindplane Gateway" source), optionally does additional processing, and forwards onward. Any source type that receives from multiple remote collectors puts a collector into gateway mode.
-- **V1 vs V2:** V1 uses a custom OpAMP manager built into the BDOT Collector. V2 (in beta as of verification) uses the official OpenTelemetry OpAMP Supervisor instead. Confirm which version a customer is running before troubleshooting config-push issues; the mechanism differs.
+- **V1 vs V2:** V1 uses a custom OpAMP manager built into the BDOT Collector. V2 uses the official OpenTelemetry OpAMP Supervisor instead. V2 was in beta as of the July 15, 2026 verification; **verify current GA/beta status at docs.bindplane.com before advising a customer to adopt V2 in production**. Confirm which version a customer is running before troubleshooting config-push issues; the mechanism differs.
 - You are not limited to the BDOT Collector. Bindplane can manage **custom OpenTelemetry Collector distributions** (built via OCB with your own component manifest) as long as the OpAMP Supervisor is packaged in.
 ---
  
@@ -114,10 +114,18 @@ spec:
  
 ## Editions and Licensing
  
-- **Bindplane Cloud**: hosted; fastest way to start.
-- **Self-hosted**: available for **Enterprise** and **Google** editions.
-- **Enterprise Edition**: unlocks additional processors/capabilities not in the base tier. Bindplane's own docs are non-specific about exactly which processors are Enterprise-gated at any given time and direct customers to `sales@bindplane.com` for current specifics. **Do not guess at which features are Enterprise-only; route pricing/tier questions to sales, same as the parent Dynatrace-licensing rule.**
-- **Google Edition**: bundled with Google SecOps Enterprise Plus; adds capabilities like PII masking, log deduplication, and a 12-month allowance to route data to non-Google destinations during a SIEM migration.
+Bindplane's documented plan tiers as of last verification (verify current pricing at bindplane.com before quoting):
+
+| Edition | Hosting | Price | Notes |
+|---|---|---|---|
+| **Free** | Bindplane Cloud (hosted) | $0/month | Entry tier |
+| **Growth** | Bindplane Cloud (hosted) | Starts at $499/month | Mid-tier |
+| **Enterprise** | Cloud or self-hosted | Custom, starts at ~$50k/year | Unlocks additional processors/capabilities; self-hosted available |
+| **Google Edition** | Cloud | Free for Google Cloud customers | Bundled with Google SecOps Enterprise Plus |
+
+- **Self-hosted** is available for Enterprise and Google editions only.
+- **Enterprise Edition**: unlocks additional processors/capabilities not in lower tiers. Bindplane's own docs are non-specific about exactly which processors are Enterprise-gated at any given time and direct customers to `sales@bindplane.com` for current specifics. **Do not guess at which features are Enterprise-only; route pricing/tier questions to sales, same as the parent Dynatrace-licensing rule.**
+- **Google Edition**: adds capabilities like PII masking, log deduplication, and a 12-month allowance to route data to non-Google destinations during a SIEM migration. Google SecOps permissions expanded for project-scoped users as of v1.102.0 (August 2026).
 - **Consult Bindplane's current Plans & Pricing page before quoting tier boundaries**: this is exactly the kind of fast-moving, customer-remembered detail the parent project instructions already flag as high-risk for staleness.
 ---
  
@@ -127,6 +135,10 @@ spec:
  
 Bindplane exports to Dynatrace using **OTLP over HTTP** (gRPC is not supported, same constraint as Dynatrace's native OTLP endpoints documented elsewhere in this project).
  
+**Critical endpoint note:** Do not use `.apps.dynatrace.com` URLs in the Dynatrace destination. Only `.live.dynatrace.com` paths are valid for OTLP ingest; the platform-API `.apps` domain returns HTTP 404 with no useful error message.
+
+**Metrics limitation:** Monotonic cumulative sums are not currently supported for metrics via `dynatrace_otlp`.
+
 ### Destination type
 - **Current:** `dynatrace_otlp`
 - **Deprecated:** a destination simply called `dynatrace` still exists and still functions, but receives no further enhancements. **If you see a customer's config using the plain `dynatrace` type, flag it for migration** to `dynatrace_otlp`.
@@ -147,7 +159,17 @@ Bindplane exports to Dynatrace using **OTLP over HTTP** (gRPC is not supported, 
 | Traces | `openTelemetryTrace.ingest` | OTLP-specific; no classic-API equivalent scope name. |
  
 Combine whichever scopes match the signals you're exporting onto a single token.
- 
+
+### Additional destination parameters
+Beyond the core deployment/auth fields, the `dynatrace_otlp` destination supports:
+
+| Parameter | Default | Purpose |
+|---|---|---|
+| **Additional Headers** | (empty) | Map of custom HTTP headers appended to every OTLP request. |
+| **Drop Raw Copy** | `true` | Removes `log.record.original` from log records before export. Reduces log payload size; disable only if raw log preservation is required downstream. |
+| **Enable Retry on Failure** | `true` | Retry failed exports. Initial interval: 5s, max interval: 30s, max elapsed time: 300s. |
+| **Number of Consumers** | `10` | Parallel goroutines consuming the sending queue. |
+
 - **Partial signal loss is the single most common Bindplane→Dynatrace support pattern:** a token missing one of the three scopes causes *only that signal* to be silently rejected, metrics and logs succeed while traces vanish (or any other combination), which reads to the customer like a Bindplane bug when it's actually a scope gap. Always check scopes first when only one signal type is missing.
 ### Resilience defaults
 - **Sending queue:** enabled by default, default size 5,000 batches. Increase if the customer sees bursty traffic exceeding that.
@@ -155,6 +177,7 @@ Combine whichever scopes match the signals you're exporting onto a single token.
 ### TLS
 - For ActiveGate or Custom deployment types against a private/internal CA, set the **TLS Certificate Authority File** parameter rather than disabling verification.
 - "Skip TLS Certificate Verification" exists but is explicitly intended for short-lived testing only; flag it if you see it enabled in what looks like a production config.
+- **ActiveGate topology mapping:** when routing through an ActiveGate, Dynatrace requires explicit host topology mapping via resource attributes for entities to appear correctly. Verify resource attribute configuration when a customer reports missing topology context after switching from SaaS to ActiveGate deployment type.
 ### Example configs
  
 **SaaS:**
@@ -228,6 +251,7 @@ Is the destination type dynatrace_otlp (not the deprecated "dynatrace" type)?
 - Confirm the ActiveGate hostname and port (default `9999`) are reachable from the Bindplane collector host.
 - For a private CA: set the TLS Certificate Authority File rather than skipping verification.
 - Confirm the SaaS OTLP endpoint pattern if applicable: `https://{environment-id}.live.dynatrace.com/api/v2/otlp`.
+- **If using `.apps.dynatrace.com`:** this is the wrong domain for OTLP ingest and returns HTTP 404. Switch to the `.live.dynatrace.com` endpoint.
 ### Gaps correlating with restarts or network instability
 - Verify the sending queue and persistent queuing are both enabled (they're on by default; check nothing disabled them).
 - If bursts exceed the default queue size of 5,000 batches, increase it.
