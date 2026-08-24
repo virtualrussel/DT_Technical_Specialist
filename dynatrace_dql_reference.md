@@ -1,6 +1,6 @@
 # DQL Reference Guide: Fundamentals, Smartscape Topology, and Performance
  
-> **Last verified against docs.dynatrace.com:** July 15, 2026
+> **Last verified against docs.dynatrace.com:** 2026-08-24
 > **Staleness policy:** Core DQL syntax and the Smartscape topology model are stable architectural concepts; treat those sections as durable. Performance thresholds, exact error message text, default timeframes, and scan limits are UI/behavior-dependent and move on the same ~90-day cadence as the rest of the reference guide and troubleshooting trees, if a query fails with an unexpected error or an unfamiliar relationship/entity type, verify against docs.dynatrace.com/docs/dynatrace-api/grail/dql before treating this file as final.
 > **Consolidation note:** This file is the single authoritative source for DQL syntax, topology querying, and DQL performance/troubleshooting. It replaces content formerly duplicated across the Reference Guide's DQL section, Troubleshooting Tree 6, the Common Questions FAQ's DQL entry, and the standalone Smartscape reference file. Those files now contain short pointers here rather than their own copies. If you find DQL guidance anywhere else in this project that isn't just a pointer to this file, flag it, that's drift.
  
@@ -10,7 +10,7 @@
  
 ### Core Concepts
 - DQL is a **read-only** query language against Grail data, using a pipeline model with the pipe operator (`|`).
-- **Core commands**: `fetch`, `filter`, `filterOut`, `search`, `summarize`, aggregation functions, `join`, `parse`, `fields`, `limit`, `sort`, `maketimeseries`.
+- **Core commands**: `fetch`, `filter`, `filterOut`, `dedup`, `search`, `summarize`, `makeTimeseries`, `timeseries`, `join`, `joinNested`, `append`, `lookup`, `parse`, `jsonExtract`, `fields`, `fieldsAdd`, `fieldsKeep`, `fieldsRemove`, `fieldsRename`, `fieldsFlatten`, `limit`, `sort`, `expand`, `traverse`, `smartscapeNodes`, `smartscapeEdges`.
 - **Data types**: boolean, long, double, string, timestamp, duration, ipaddress, uid, array, record.
 - **Strongly typed**: functions accept only their declared types; casting is required for conversions between types.
 ### Data Sources (fetch targets)
@@ -18,8 +18,9 @@
 |---|---|
 | `fetch logs` | Log records from Grail buckets |
 | `fetch spans` | Distributed trace span data |
-| `fetch events` | Custom business events |
-| `fetch dt.entity.*` | Monitored entities (hosts, services, databases, etc.) via Smartscape views, see Part 2 |
+| `fetch bizevents` | Business events (ingested via OpenPipeline or the Business Events API) |
+| `fetch dt.davis.events.snapshots` | Davis AI events created by Dynatrace monitoring (problem, alert, custom annotation, etc.) |
+| `fetch dt.entity.*` | Monitored entities via classic Smartscape views (see Part 2); being superseded by `smartscapeNodes` |
 | `fetch metrics` | Metric time series (`builtin:*` for out-of-the-box metrics, `custom:*` for ingested metrics) |
  
 ### Best Practices (why they matter, not just what to do)
@@ -33,7 +34,34 @@
  
 ## Part 2: Smartscape Topology and Relationship Queries
  
-### Nodes and Edges
+> **Transition notice (2026):** Dynatrace is actively migrating Smartscape storage to Grail. The new model introduces dedicated DQL commands — `smartscapeNodes`, `smartscapeEdges`, and `traverse` — that replace the `fetch dt.entity.*` + `expand` pattern. The legacy approach still works, but new queries should prefer the new commands. The new model also renames some entity types (e.g., `CLOUD_APPLICATION_INSTANCE` → `K8S_POD`). Until the migration is complete, both patterns may be seen in practice; verify the current model at docs.dynatrace.com/docs/platform/grail/smartscape-on-grail.
+
+### New Smartscape on Grail Commands
+
+The new commands use uppercase entity type names rather than `dt.entity.<type>` dot notation.
+
+**Fetch all nodes of a type:**
+```dql
+smartscapeNodes SERVICE
+| fields entityId, displayName, tags
+```
+
+**Traverse a relationship:**
+```dql
+smartscapeNodes SERVICE
+| filter displayName == "checkout-api"
+| traverse runs_on, HOST
+```
+
+**Legacy-to-new mapping:**
+| Legacy | New (Smartscape on Grail) |
+|---|---|
+| `fetch dt.entity.host` | `smartscapeNodes HOST` |
+| `fetch dt.entity.service` | `smartscapeNodes SERVICE` |
+| `fetch dt.entity.database_service` | `smartscapeNodes DATABASE_SERVICE` |
+| `\| expand [runs_on(from: dt.entity.host)]` | `\| traverse runs_on, HOST` |
+
+### Nodes and Edges (Legacy Model)
 **Nodes** are monitored entities in Smartscape: hosts, services, service instances, databases, processes, applications, external services, etc. Each node has a unique `entityId`, an `entityType`, attributes (displayName, tags, metrics), and relationships (edges) to other nodes.
  
 **Edges** are directional relationships between nodes representing dependencies and causality (a service `runs_on` a host, a service `calls` another service, a service `uses` a database, a host `resides_in` a cloud region). Querying requires knowing which direction you're traversing, `calls` (A→B) is not the same as `is_called_by` (B←A).
@@ -272,12 +300,16 @@ fetch spans, samplingRatio:100 | summarize count_spans = count()
 | **Entity type** | The classification of a node (SERVICE, HOST, DATABASE_SERVICE, etc.) |
 | **samplingRatio** | DQL fetch parameter controlling data sampling (1, 10, 100, 1000, 10000); higher values sample less data |
 | **scanLimitGBytes** | DQL fetch parameter controlling the maximum data volume a query is allowed to scan (default 500 GB) |
+| **bizevents** | DQL fetch target for business events ingested via OpenPipeline or the Business Events API (`fetch bizevents`); distinct from Davis events (`fetch dt.davis.events.snapshots`) |
+| **smartscapeNodes** | New DQL command for querying topology nodes by entity type (e.g., `smartscapeNodes SERVICE`); part of Smartscape on Grail migration |
+| **traverse** | New DQL command for navigating topology relationships in the Smartscape on Grail model (e.g., `\| traverse runs_on, HOST`) |
  
 ---
  
 ## When to Escalate
  
-- New relationship types or entity types not documented here → check docs.dynatrace.com or escalate to Dynatrace support.
+- New relationship types or entity types not documented here → check docs.dynatrace.com (note: Smartscape on Grail uses different entity type names than the legacy model) or escalate to Dynatrace support.
+- Entity types that existed in the legacy model but return no results in Smartscape on Grail → the type may have been renamed (e.g., `CLOUD_APPLICATION_INSTANCE` → `K8S_POD`); verify at docs.dynatrace.com/docs/platform/grail/smartscape-on-grail before assuming the entity doesn't exist.
 - Performance issues with large Smartscape queries (timeouts, memory) after the full optimization checklist above → escalate; may require query tuning or index support from Dynatrace.
 - Unexpected missing relationships (an edge you expect doesn't exist) → verify with support whether the dependency was actually captured by OneAgent, or whether relationship discovery is disabled, before assuming it's a query problem.
 - Questions about running DQL programmatically via the Grail Query API (execute/poll pattern, OAuth vs. platform token requirements) → that's an authentication topic, not a query-language topic. See the API Quick Reference file's "Grail Query API" and "Two API Generations" sections; don't try to resolve auth failures from this file.
