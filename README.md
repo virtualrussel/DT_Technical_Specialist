@@ -23,29 +23,29 @@ You need [Claude Desktop](https://claude.ai/download) with a Pro or Team plan (p
    git clone https://github.com/virtualrussel/DT_Technical_Specialist.git
    ```
 2. In Claude Desktop, create a new project.
-3. Open the project's **Instructions** field and paste the full contents of `Instructions.md`.
+3. Open the project's **Instructions** field and paste the full contents of `Docs/Instructions.md`.
 4. Upload all seven reference files as project knowledge:
-   - `dynatrace_reference_guide.md`
-   - `dynatrace_api_quick_reference.md`
-   - `dynatrace_dql_reference.md`
-   - `dynatrace_common_questions.md`
-   - `dynatrace_troubleshooting_trees.md`
-   - `dynatrace_bindplane_reference.md`
-   - `dynatrace_bluebox_reference.md`
+   - `Docs/dynatrace_reference_guide.md`
+   - `Docs/dynatrace_api_quick_reference.md`
+   - `Docs/dynatrace_dql_reference.md`
+   - `Docs/dynatrace_common_questions.md`
+   - `Docs/dynatrace_troubleshooting_trees.md`
+   - `Docs/dynatrace_bindplane_reference.md`
+   - `Docs/dynatrace_bluebox_reference.md`
 5. Start a conversation in the project and ask a Dynatrace question.
 
 ## Reference files
 
 | File | Covers | Staleness window |
 |------|--------|-----------------|
-| `Instructions.md` | Agent persona, routing rules, guardrails | Author-controlled |
-| `dynatrace_reference_guide.md` | Core platform architecture: OneAgent, ActiveGate, Grail, deployment modes, OpenPipeline | ~90 days |
-| `dynatrace_api_quick_reference.md` | Classic vs. Platform API generations, auth models, token scopes, common endpoints | ~90 days |
-| `dynatrace_dql_reference.md` | DQL syntax, pipeline model, Smartscape topology queries, performance tuning | ~90 days |
-| `dynatrace_common_questions.md` | Pre-structured FAQ for pre-sales and support scenarios | ~90 days |
-| `dynatrace_troubleshooting_trees.md` | Decision trees for OneAgent, Kubernetes, API auth, ingest, and OpenPipeline issues | ~90 days |
-| `dynatrace_bindplane_reference.md` | Bindplane architecture, pipeline configuration, Dynatrace integration status | ~30 days |
-| `dynatrace_bluebox_reference.md` | Bluebox AI SRE agent: workspace setup, investigations, GitHub integration | ~14 days |
+| `Docs/Instructions.md` | Agent persona, routing rules, guardrails | Author-controlled |
+| `Docs/dynatrace_reference_guide.md` | Core platform architecture: OneAgent, ActiveGate, Grail, deployment modes, OpenPipeline | ~90 days |
+| `Docs/dynatrace_api_quick_reference.md` | Classic vs. Platform API generations, auth models, token scopes, common endpoints | ~90 days |
+| `Docs/dynatrace_dql_reference.md` | DQL syntax, pipeline model, Smartscape topology queries, performance tuning | ~90 days |
+| `Docs/dynatrace_common_questions.md` | Pre-structured FAQ for pre-sales and support scenarios | ~90 days |
+| `Docs/dynatrace_troubleshooting_trees.md` | Decision trees for OneAgent, Kubernetes, API auth, ingest, and OpenPipeline issues | ~90 days |
+| `Docs/dynatrace_bindplane_reference.md` | Bindplane architecture, pipeline configuration, Dynatrace integration status | ~30 days |
+| `Docs/dynatrace_bluebox_reference.md` | Bluebox AI SRE agent: workspace setup, investigations, GitHub integration | ~14 days |
 
 ## Staleness policy
 
