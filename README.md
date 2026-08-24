@@ -1,14 +1,14 @@
 # DT Technical Specialist
 
-A Claude Code project context repository for a Dynatrace Technical Specialist AI agent. Load this repo as your Claude Code project directory and the agent answers Dynatrace, Bindplane, Bluebox, and OpenPipeline questions with the precision and guardrails of a senior field engineer.
+A Claude Desktop project providing a Dynatrace Technical Specialist AI agent. Configure it once in Claude Desktop and the agent answers Dynatrace, Bindplane, Bluebox, and OpenPipeline questions with the precision and guardrails of a senior field engineer.
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC_BY_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
 
 ## How it works
 
-This repo contains no executable code — only curated Markdown documents that Claude Code loads as project context. `Instructions.md` defines the agent's persona, question routing logic, and guardrails. The seven reference files are its knowledge base.
+This repo contains no executable code — only curated Markdown documents used as context in a Claude Desktop project. `Instructions.md` defines the agent's persona, question routing logic, and guardrails. The seven reference files are its knowledge base.
 
-When you open this directory in Claude Code, the agent has immediate access to all reference material and applies the routing rules in `Instructions.md` automatically. No additional setup is required beyond having Claude Code installed.
+Claude Desktop projects let you attach both a system prompt (Project Instructions) and a set of knowledge files to a persistent conversation context. `Instructions.md` goes in as the Project Instructions; the seven reference files are uploaded as project knowledge. Every conversation in the project starts with all of this context already loaded.
 
 ## Audience
 
@@ -16,17 +16,23 @@ Dynatrace Technical Specialists, field engineers, pre-sales engineers, and suppo
 
 ## Setup
 
-1. [Install Claude Code](https://docs.anthropic.com/en/docs/claude-code)
-2. Clone this repository:
+You need [Claude Desktop](https://claude.ai/download) with a Pro or Team plan (project support is not available on the free tier).
+
+1. Clone this repository:
    ```
    git clone https://github.com/virtualrussel/DT_Technical_Specialist.git
-   cd DT_Technical_Specialist
    ```
-3. Open the directory with Claude Code:
-   ```
-   claude
-   ```
-4. Ask a Dynatrace question. The agent uses the reference files automatically.
+2. In Claude Desktop, create a new project.
+3. Open the project's **Instructions** field and paste the full contents of `Instructions.md`.
+4. Upload all seven reference files as project knowledge:
+   - `dynatrace_reference_guide.md`
+   - `dynatrace_api_quick_reference.md`
+   - `dynatrace_dql_reference.md`
+   - `dynatrace_common_questions.md`
+   - `dynatrace_troubleshooting_trees.md`
+   - `dynatrace_bindplane_reference.md`
+   - `dynatrace_bluebox_reference.md`
+5. Start a conversation in the project and ask a Dynatrace question.
 
 ## Reference files
 
