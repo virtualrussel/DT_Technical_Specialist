@@ -531,7 +531,7 @@ Example (pseudocode):
 **A:** Yes. Dynatrace SaaS includes:
 - Audit logging (all config changes, access logged)
 - Data encryption in transit (TLS 1.2+) and at rest
-- Sensitive data masking (PII detection + masking rules)
+- Sensitive data masking (PII detection + masking rules; built-in rules for card numbers and email addresses are **off by default** in paid environments and must be explicitly activated)
 - Role-based access control (SAML, user groups)
 **Get formal compliance documentation from Dynatrace sales/trust team.**
  

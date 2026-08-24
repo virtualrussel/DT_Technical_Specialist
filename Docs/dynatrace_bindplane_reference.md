@@ -43,7 +43,7 @@ This is conceptually adjacent to, but distinct from, Dynatrace OpenPipeline. Ope
 - **Two operating modes** (not manually configured, implicit based on what sources are attached):
   - **Agent mode:** collector runs on the host it's monitoring (e.g., a database host, an API server) and collects locally.
   - **Gateway mode:** collector receives telemetry from *other* collectors over the network (e.g., via an OTLP or "Bindplane Gateway" source), optionally does additional processing, and forwards onward. Any source type that receives from multiple remote collectors puts a collector into gateway mode.
-- **V1 vs V2:** V1 uses a custom OpAMP manager built into the BDOT Collector. V2 uses the official OpenTelemetry OpAMP Supervisor instead. V2 was in beta as of the July 15, 2026 verification; **verify current GA/beta status at docs.bindplane.com before advising a customer to adopt V2 in production**. Confirm which version a customer is running before troubleshooting config-push issues; the mechanism differs.
+- **V1 vs V2:** V1 uses a custom OpAMP manager built into the BDOT Collector. V2 uses the official OpenTelemetry OpAMP Supervisor instead. V2 was in beta as of this file's original verification date; **verify current GA/beta status at docs.bindplane.com before advising a customer to adopt V2 in production**. Confirm which version a customer is running before troubleshooting config-push issues; the mechanism differs.
 - You are not limited to the BDOT Collector. Bindplane can manage **custom OpenTelemetry Collector distributions** (built via OCB with your own component manifest) as long as the OpAMP Supervisor is packaged in.
 ---
  
@@ -154,7 +154,7 @@ Bindplane exports to Dynatrace using **OTLP over HTTP** (gRPC is not supported, 
 - **Token scopes required, and this is important, don't conflate it with the classic ingest scopes documented elsewhere in this project:**
 | Signal | OTLP ingest scope (used by Bindplane) | Note |
 |---|---|---|
-| Metrics | `metrics.ingest` | **Not** the same as `metrics:write`, which is the classic Metrics API v2 (`/api/v2/metrics/ingest`) scope documented in the API Quick Reference file. OTLP ingestion is a separate endpoint with its own scope. |
+| Metrics | `metrics.ingest` | Same scope name as classic metric ingest (`/api/v2/metrics/ingest`); the OTLP and classic ingest endpoints are distinct but share this scope. |
 | Logs | `logs.ingest` | Same scope name as classic log ingest; this one does overlap. |
 | Traces | `openTelemetryTrace.ingest` | OTLP-specific; no classic-API equivalent scope name. |
  

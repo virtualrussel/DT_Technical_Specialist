@@ -89,6 +89,7 @@ curl -X GET "https://{environment-id}.apps.dynatrace.com/platform/..." \
 | `storage:events:read` | Query Davis AI events via DQL | `fetch dt.davis.events.snapshots` in Notebooks / Query API |
 | `storage:bizevents:read` | Query business events via DQL | `fetch bizevents` in Notebooks / Query API |
 | `storage:spans:read` | Query spans/traces via DQL | `fetch spans` in Notebooks / Query API |
+| `document:read` | Read documents and dashboards (Platform API) | Documents API on `.apps.dynatrace.com` |
 | `openTelemetryTrace.ingest` | Ingest traces via OTLP | `/api/v2/otlp/v1/traces` |
 | `events.ingest` | Ingest Davis/custom events | `/api/v2/events/ingest` |
 | `storage:entities:read` | Query monitored entities | `/api/v2/entities`, `fetch dt.entity.*` |
@@ -546,6 +547,8 @@ OpenPipeline is Dynatrace's ingest-time processing layer. It sits between data a
 ### OpenPipeline Ingest Endpoints
 
 These endpoints deliver data into Dynatrace *through* OpenPipeline processing. All use the classic `.live.dynatrace.com` base URL and classic API tokens (not platform tokens or OAuth).
+
+> **Path prefix note:** The `/platform/` in these URLs is an OpenPipeline naming convention, not an indicator of Platform API generation (see "Two API Generations" above). These endpoints live on `.live.dynatrace.com` and require a classic `Api-Token` — not a platform token or OAuth bearer. Do not infer auth type from the path prefix here.
 
 | Signal type | Built-in endpoint | Auth scope |
 |---|---|---|
