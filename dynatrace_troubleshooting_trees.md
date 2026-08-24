@@ -1,6 +1,6 @@
 # Dynatrace Troubleshooting Decision Trees
  
-> **Last verified against docs.dynatrace.com:** July 15, 2026
+> **Last verified against docs.dynatrace.com:** 2026-08-24
 > **Staleness policy:** Decision trees encode current UI paths, CLI commands, and product behavior; these change more frequently than architectural concepts. If a diagnostic step (menu path, kubectl output format, API response shape) doesn't match what the person is seeing, don't assume they're doing it wrong. Verify the step against docs.dynatrace.com or the Dynatrace Community first, since the product likely moved.
  
 Use these decision trees to rapidly isolate and diagnose issues in pre-sales and incident response scenarios. Start at the symptom and follow the branches.
@@ -15,6 +15,8 @@ Use these decision trees to rapidly isolate and diagnose issues in pre-sales and
 | Bluebox AI SRE agent | Consult docs.bluebox.ai; these trees cover Dynatrace observability, not Bluebox investigations |
 | DQL queries returning errors or performance questions | `dynatrace_dql_reference.md` directly (Tree 6 here is a pointer stub, not the source of truth) |
 | Ingest APIs (metrics, logs, events) | Tree 9 or Tree 10 |
+| OpenPipeline: data ingested but missing from Grail | Tree 9 (OpenPipeline branch at the bottom) |
+| OpenPipeline: API config or scope errors | Tree 4; also see API Quick Reference (OpenPipeline API section) |
 | API returning 401/403 (any endpoint) | Tree 4 |
 | RUM / Digital Experience Monitoring data missing | Tree 7 |
 | Problem or alert not firing as expected | Tree 11 |
@@ -157,7 +159,7 @@ Is the API token valid?
    ├─ Check which scopes the endpoint needs (API Explorer shows lock icon)
    ├─ Common scopes:
    │  ├─ metrics.read (query metrics)
-   │  ├─ metrics:write (ingest custom metrics)
+   │  ├─ metrics.ingest (ingest custom metrics)
    │  ├─ logs.ingest (ingest logs)
    │  ├─ events.ingest (ingest events)
    │  └─ storage:entities:read (query entities)
@@ -166,9 +168,11 @@ Is the API token valid?
 ```
  
 **Request validation:**
-- Authorization header format: `Authorization: Api-Token {token}` (not Bearer)
+- **Classic API** (`/api/v2/...` on `.live.dynatrace.com`): `Authorization: Api-Token {token}` — not Bearer
+- **Platform API** (`/platform/...` on `.apps.dynatrace.com`) and Grail Query API: `Authorization: Bearer {token}` with a platform token or OAuth access token — not Api-Token
+- Mixing auth types is the most common 401 cause that scope checks don't catch; verify the API generation before checking scopes (see API Quick Reference "Two API Generations" section)
 - Content-Type header correct for endpoint (e.g., `text/plain; charset=utf-8` for metrics ingest)
-- URL uses correct environment: `https://{environment-id}.live.dynatrace.com/api/v2/...`
+- URL uses correct base domain: `.live.dynatrace.com` for classic; `.apps.dynatrace.com` for platform
 - Token is copied exactly as issued (no truncation, no added whitespace, no re-encoding); Dynatrace API tokens are opaque strings sent as-is in the header, not Basic Auth, so they should never be base64-encoded by the client
 **Follow-up questions to ask:**
 - What's the exact error message (401 vs 403)?
@@ -371,7 +375,7 @@ What does the ingest response say?
 │  └─ Verify dimension keys are alphanumeric (plus underscore)
 │
 ├─ 401/403 →
-│  └─ See Tree 4 (API Authentication), requires metrics:write scope
+│  └─ See Tree 4 (API Authentication), requires metrics.ingest scope
 │
 ├─ 204 (accepted) but metric doesn't appear →
 │  ├─ Custom metric naming should use custom: prefix (recommended, not strictly enforced)
