@@ -1,6 +1,6 @@
 # Dynatrace API v2 Quick Reference
  
-> **Last verified against docs.dynatrace.com:** July 15, 2026
+> **Last verified against docs.dynatrace.com:** 2026-08-24
 > **Staleness policy:** Authentication mechanisms and base URLs are actively evolving as Dynatrace migrates capabilities from Classic APIs to the platform (Grail-based) APIs. Confirm which generation an environment is running and which auth model an endpoint expects before handing a customer a curl example. Using the wrong header/token type is the most common integration failure.
  
 Fast lookup for common API endpoints, authentication, scopes, request/response formats, and error codes, covering both Classic APIs (Metrics, Logs, Events, Entities, Problems) and Platform APIs (Grail Query API, Business Events).
@@ -81,18 +81,25 @@ curl -X GET "https://{environment-id}.apps.dynatrace.com/platform/..." \
 ### Common Token Scopes
 | Scope | Purpose | Endpoints |
 |-------|---------|-----------|
-| `metrics:write` | Ingest custom metrics | `/api/v2/metrics/ingest` |
+| `metrics.ingest` | Ingest custom metrics | `/api/v2/metrics/ingest` |
 | `metrics.read` | Query metrics | `/api/v2/metrics/query` (GET) |
 | `logs.ingest` | Ingest logs | `/api/v2/logs/ingest` |
 | `storage:logs:read` | Query logs via DQL | `fetch logs` in Notebooks / Query API |
 | `storage:metrics:read` | Query metrics via DQL | `fetch metrics` in Notebooks / Query API |
 | `storage:events:read` | Query events via DQL | `fetch events` in Notebooks / Query API |
-| `events.ingest` | Ingest custom events | `/api/v2/events/ingest` |
+| `events.ingest` | Ingest Davis/custom events | `/api/v2/events/ingest` |
 | `storage:entities:read` | Query monitored entities | `/api/v2/entities`, `fetch dt.entity.*` |
 | `problems.read` | Read problems | `/api/v2/problems` |
 | `auditlogs.read` | Read audit logs | `/api/v2/auditlogs` |
-| `bizevents:ingest` | Ingest business events | `/api/v2/bizevents/ingest` |
+| `bizevents.ingest` | Ingest business events | `/api/v2/bizevents/ingest` |
 | `automation:workflows:read` / `:write` / `:admin` | Manage Workflows | Automation API |
+| `openpipeline.events` | Ingest generic events (OpenPipeline built-in) | `/platform/ingest/v1/events` |
+| `openpipeline.events.custom` | Ingest generic events (OpenPipeline custom endpoint) | `/platform/ingest/custom/events` |
+| `openpipeline.sdlc` | Ingest SDLC events (OpenPipeline built-in) | `/platform/ingest/v1/events.sdlc` |
+| `openpipeline.sdlc.custom` | Ingest SDLC events (OpenPipeline custom endpoint) | `/platform/ingest/custom/events.sdlc` |
+| `openpipeline.events_security` | Ingest security events (OpenPipeline built-in) | `/platform/ingest/v1/security.events` |
+| `openpipeline.events_security.custom` | Ingest security events (OpenPipeline custom endpoint) | `/platform/ingest/custom/security.events` |
+| `openpipeline.events_smartscape` | Ingest Smartscape events | `/platform/ingest/v1/smartscape.events` |
  
 **Best practice:** Create a token/client with only scopes needed for the specific use case (principle of least privilege).
  
@@ -141,7 +148,7 @@ Poll repeatedly until the state is no longer `RUNNING`.
  
 **Content-Type:** `text/plain; charset=utf-8`
  
-**Scope:** `metrics:write`
+**Scope:** `metrics.ingest`
  
 **Format:** Dynatrace Metrics Ingestion Protocol (line-based plaintext)
 ```
@@ -336,7 +343,7 @@ For ingesting business-context events (order placed, checkout completed, etc.), 
  
 **POST** `/api/v2/bizevents/ingest`
  
-**Scope:** `bizevents:ingest` (classic API token). This endpoint can also be reached via the platform proxy path using a platform token or OAuth bearer: `.apps.dynatrace.com/platform/classic/environment-api/v2/bizevents/ingest`
+**Scope:** `bizevents.ingest` (classic API token). This endpoint can also be reached via the platform proxy path using a platform token or OAuth bearer: `.apps.dynatrace.com/platform/classic/environment-api/v2/bizevents/ingest`
  
 **Content-Type:** `application/json` (or `application/cloudevent+json` for CloudEvents format)
  
@@ -522,6 +529,46 @@ curl -X GET "https://{env}.live.dynatrace.com/api/v2/auditlogs?from=-24h&to=now"
  
 ---
  
+## OpenPipeline API
+
+OpenPipeline is Dynatrace's ingest-time processing layer. It sits between data arrival at Dynatrace and storage in Grail, applying routing rules, transformations, and enrichment before data is written. It exposes two distinct API surfaces: ingest endpoints and configuration management.
+
+### OpenPipeline Ingest Endpoints
+
+These endpoints deliver data into Dynatrace *through* OpenPipeline processing. All use the classic `.live.dynatrace.com` base URL and classic API tokens (not platform tokens or OAuth).
+
+| Signal type | Built-in endpoint | Auth scope |
+|---|---|---|
+| Generic events | `POST /platform/ingest/v1/events` | `openpipeline.events` |
+| Generic events (custom) | `POST /platform/ingest/custom/events` | `openpipeline.events.custom` |
+| SDLC events | `POST /platform/ingest/v1/events.sdlc` | `openpipeline.sdlc` |
+| SDLC events (custom) | `POST /platform/ingest/custom/events.sdlc` | `openpipeline.sdlc.custom` |
+| Security events | `POST /platform/ingest/v1/security.events` | `openpipeline.events_security` |
+| Security events (custom) | `POST /platform/ingest/custom/security.events` | `openpipeline.events_security.custom` |
+| Smartscape events | `POST /platform/ingest/v1/smartscape.events` | `openpipeline.events_smartscape` |
+
+**Content-Type:** `application/json` for all OpenPipeline ingest endpoints.
+
+**Auth header:** `Authorization: Api-Token {token}` (classic API token with the matching scope above).
+
+**Distinction from classic `/api/v2/events/ingest`:** The classic events endpoint targets Davis AI problem detection (Davis events). The OpenPipeline ingest endpoints target the generic events, SDLC, security events, and Smartscape events pipelines. Route to the right endpoint based on what pipeline should process the data.
+
+### OpenPipeline Configuration API
+
+**Configurations API is deprecated (reached end of life June 29, 2026).** Do not use or recommend it for new integrations.
+
+**Replacement:** Use the Settings API (`/api/v2/settings/objects`) with these OpenPipeline-specific schemas:
+
+| Schema key | Purpose |
+|---|---|
+| `builtin:openpipeline.<scope>.routing` | Configure routing rules for a pipeline scope |
+| `builtin:openpipeline.<scope>.pipelines` | Configure processing pipelines |
+| `builtin:openpipeline.<scope>.ingest-sources` | Configure ingest source mappings |
+
+The Settings API uses classic API tokens with the `settings.write` / `settings.read` scopes.
+
+---
+
 ## Error Codes & Troubleshooting
  
 ### Common HTTP Status Codes
