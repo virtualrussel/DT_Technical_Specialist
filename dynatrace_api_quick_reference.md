@@ -86,7 +86,9 @@ curl -X GET "https://{environment-id}.apps.dynatrace.com/platform/..." \
 | `logs.ingest` | Ingest logs | `/api/v2/logs/ingest` |
 | `storage:logs:read` | Query logs via DQL | `fetch logs` in Notebooks / Query API |
 | `storage:metrics:read` | Query metrics via DQL | `fetch metrics` in Notebooks / Query API |
-| `storage:events:read` | Query events via DQL | `fetch events` in Notebooks / Query API |
+| `storage:events:read` | Query Davis AI events via DQL | `fetch dt.davis.events.snapshots` in Notebooks / Query API |
+| `storage:bizevents:read` | Query business events via DQL | `fetch bizevents` in Notebooks / Query API |
+| `openTelemetryTrace.ingest` | Ingest traces via OTLP | `/api/v2/otlp/v1/traces` |
 | `events.ingest` | Ingest Davis/custom events | `/api/v2/events/ingest` |
 | `storage:entities:read` | Query monitored entities | `/api/v2/entities`, `fetch dt.entity.*` |
 | `problems.read` | Read problems | `/api/v2/problems` |
@@ -334,7 +336,7 @@ curl -X POST "https://{ag-host}:9999/api/v2/events/ingest" \
 - `eventType` must be unique (custom:* recommended)
 - `title` is brief summary
 - `properties` are key-value pairs for context
-- Available in DQL: `fetch events | filter event.type == "my.custom.deployment"`
+- Available in DQL via `fetch dt.davis.events.snapshots | filter event.type == "my.custom.deployment"` (Davis AI events ingested via this endpoint appear as Davis event snapshots in Grail, not as business events; see DQL reference for fetch target distinctions)
 ---
  
 ## Business Events API
@@ -486,6 +488,13 @@ export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Api-Token {token}"
 export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 ```
  
+**Required token scopes (per signal type):**
+| Signal | Scope |
+|---|---|
+| Traces | `openTelemetryTrace.ingest` |
+| Metrics | `metrics.ingest` |
+| Logs | `logs.ingest` |
+
 **Important notes:**
 - gRPC is NOT supported; HTTP/protobuf only
 - JSON is NOT supported; binary protocol buffers only

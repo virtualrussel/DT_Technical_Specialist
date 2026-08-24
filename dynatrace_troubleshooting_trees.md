@@ -159,12 +159,21 @@ Is the API token valid?
 │
 └─ Token exists → Does it have required scopes?
    ├─ Check which scopes the endpoint needs (API Explorer shows lock icon)
-   ├─ Common scopes:
-   │  ├─ metrics.read (query metrics)
-   │  ├─ metrics.ingest (ingest custom metrics)
+   ├─ Common scopes by use case:
+   │  ├─ metrics.ingest (ingest custom metrics via classic API)
+   │  ├─ metrics.read (query metrics via classic API)
+   │  ├─ storage:metrics:read (query metrics via DQL / Grail Query API)
    │  ├─ logs.ingest (ingest logs)
-   │  ├─ events.ingest (ingest events)
-   │  └─ storage:entities:read (query entities)
+   │  ├─ storage:logs:read (query logs via DQL / Grail Query API)
+   │  ├─ events.ingest (ingest Davis AI events)
+   │  ├─ storage:events:read (query Davis events via DQL)
+   │  ├─ bizevents.ingest (ingest business events)
+   │  ├─ storage:bizevents:read (query business events via DQL)
+   │  ├─ storage:spans:read (query spans/traces via DQL)
+   │  ├─ storage:entities:read (query entities)
+   │  ├─ openTelemetryTrace.ingest (ingest traces via OTLP endpoint)
+   │  └─ openpipeline.* (OpenPipeline ingest endpoints; see API Quick Reference)
+   ├─ Note: DQL / Grail Query API needs storage:* scopes AND a platform token or OAuth client (not an API token)
    ├─ If scopes missing, delete token and create new one with required scopes
    └─ Re-test with corrected token
 ```
