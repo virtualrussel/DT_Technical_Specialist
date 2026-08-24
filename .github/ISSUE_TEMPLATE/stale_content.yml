@@ -1,0 +1,50 @@
+name: Stale Content Report
+description: Report content in a reference file that no longer matches the live documentation
+labels: ["stale-content"]
+body:
+  - type: dropdown
+    id: file
+    attributes:
+      label: Affected file
+      description: Which reference file contains the stale content?
+      options:
+        - Instructions.md
+        - dynatrace_reference_guide.md
+        - dynatrace_api_quick_reference.md
+        - dynatrace_dql_reference.md
+        - dynatrace_common_questions.md
+        - dynatrace_troubleshooting_trees.md
+        - dynatrace_bindplane_reference.md
+        - dynatrace_bluebox_reference.md
+    validations:
+      required: true
+  - type: textarea
+    id: current-content
+    attributes:
+      label: What the file currently says
+      description: Quote or describe the specific section that is out of date
+    validations:
+      required: true
+  - type: textarea
+    id: correct-content
+    attributes:
+      label: What the live docs say now
+      description: Describe the correct information
+    validations:
+      required: true
+  - type: input
+    id: source-url
+    attributes:
+      label: Source URL
+      description: Direct link to the docs.dynatrace.com, docs.bindplane.com, or docs.bluebox.ai page that confirms the correction
+      placeholder: https://docs.dynatrace.com/...
+    validations:
+      required: true
+  - type: input
+    id: verified-date
+    attributes:
+      label: Date verified
+      description: When did you verify this against live docs?
+      placeholder: YYYY-MM-DD
+    validations:
+      required: true

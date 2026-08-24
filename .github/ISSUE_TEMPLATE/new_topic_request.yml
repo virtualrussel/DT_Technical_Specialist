@@ -1,0 +1,51 @@
+name: New Topic Request
+description: Request coverage of a topic not currently in the reference files
+labels: ["new-topic"]
+body:
+  - type: dropdown
+    id: product-area
+    attributes:
+      label: Product area
+      description: Which product does this topic relate to?
+      options:
+        - Core Dynatrace
+        - Dynatrace API
+        - DQL / Smartscape
+        - OpenPipeline
+        - Bindplane
+        - Bluebox
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: topic
+    attributes:
+      label: Topic
+      description: What specifically should be covered?
+    validations:
+      required: true
+  - type: textarea
+    id: why-missing
+    attributes:
+      label: Why this is needed
+      description: What question would this answer? What gap does it fill for a Technical Specialist?
+    validations:
+      required: true
+  - type: input
+    id: source-url
+    attributes:
+      label: Primary source URL
+      description: Link to the official documentation (docs.dynatrace.com, docs.bindplane.com, or docs.bluebox.ai) that would be the basis for this content
+      placeholder: https://docs.dynatrace.com/...
+    validations:
+      required: true
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency
+      description: How urgently do you need this?
+      options:
+        - Informational — nice to have
+        - Actively blocking me
+    validations:
+      required: true
