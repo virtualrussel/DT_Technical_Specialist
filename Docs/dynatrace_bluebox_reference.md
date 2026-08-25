@@ -151,6 +151,8 @@ CLI Reference version 4.3 as of last verification. Re-verify flags at docs.blueb
 - **Flag ordering:** put flags before the question — a flag written after the question is treated as part of the question text itself.
 - **Empty-question validation:** `ask` needs an actual question; running it with nothing, or with an empty or blank one, is refused.
 - **Multi-service repos:** when gathering context, the CLI sends the *modules* your changes touch — the directories that hold a project manifest — not a long list of individual files.
+- **Observability-connection precondition:** `ask` needs the workspace connected to its observability environment. If it isn't, `ask` reports that and points to `bluebox setup` instead of answering without data.
+- **AI usage cap:** if the workspace has used all of its AI usage, `ask` says so, shows when usage resets, and points to `bluebox usage` for details — it does not run the question.
 
 **Environment variables:**
 
@@ -250,7 +252,7 @@ Lets Bluebox run investigations against an Azure subscription. Currently in prev
 **Never stored:** the GitHub OAuth token beyond the initial repo-discovery step (discarded after repo selection; investigations use short-lived tokens instead); agent reasoning beyond what's shown in the investigation timeline.
 
 ### What Bluebox will never do
-Never merges code. Never pushes to branches. Never stores credentials in the repository. Never accesses another workspace's data. Never runs without safety controls limiting what an investigation can access or execute.
+Never merges code. Never pushes to branches. Never stores credentials in the repository. Never accesses another workspace's data. Never runs without safety controls limiting what an investigation can access or execute. Never shows raw log lines, trace content, or query results in `ask` answers — the Evidence section reports only service names, data types, time windows, and counts.
 
 ### Visibility
 Workspace members see their own work plus anything shared; a new investigation is private-to-creator by default unless the workspace sets sharing as default, though investigations Bluebox starts automatically are shared workspace-wide. Chats stay private to the person who started them. Workspace owners can see any investigation in the workspace. Bluebox support staff sees operational metadata only, not content.
