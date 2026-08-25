@@ -1,6 +1,7 @@
 # Bluebox Technical Reference Guide (Dynatrace)
 
-> **Last verified against docs.bluebox.ai:** 2026-08-24
+> **Last verified against docs.bluebox.ai:** 2026-08-25
+> **Product status:** Bluebox is currently in **public preview**. Per docs.bluebox.ai: "Features and APIs may change as we work toward general availability." Set expectations accordingly in any pre-sales conversation — this is not a GA product.
 > **Staleness policy, read this before answering any Bluebox question:** This is the newest and fastest-moving product in this entire project, faster than Bindplane. Bluebox was unveiled publicly at AWS Summit New York only weeks before this file's original verification date (July 15, 2026). The Getting Started guide was at version 6.11 as of this file's last verification date; the CLI Reference at version 4.3. Treat every specific detail in this file (CLI flags, supported coding agents, setup steps, permission scopes) as likely to have shifted since verification. Search docs.bluebox.ai fresh before giving a customer-facing or pre-sales answer on Bluebox specifics. Do not rely on this file's content for anything version-sensitive without checking first.
 
 **A note on the domains you may see referenced:** the product's marketing site is **bluebox.ai**, its app is at **app.bluebox.ai**, and its documentation is at **docs.bluebox.ai**. `bluebox.dynatrace.com` also resolves and redirects to the app. There is no separate `docs.bluebox.com`; if someone references that domain, they likely mean docs.bluebox.ai.
@@ -89,7 +90,7 @@ Windows (Command Prompt):
 curl -fsSL https://app.bluebox.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
 ```
 
-**Windows is natively supported** as of Getting Started v6.11 (2026-08-19). WSL2 is no longer required. Binary installs to `%USERPROFILE%\.bluebox\bin\bluebox.exe` and the directory is added permanently to the user PATH. On macOS/Linux, binary installs to `~/.bluebox/bin/bluebox`.
+**Windows native install is experimental.** Per docs.bluebox.ai/cli: "The installer supports macOS, Linux, and Windows natively (experimental) or via WSL2." WSL2 remains a fully supported install path for Windows, not a deprecated fallback — recommend it over the native installer for anything customer-facing until native support graduates out of experimental. Binary installs to `%USERPROFILE%\.bluebox\bin\bluebox.exe` and the directory is added permanently to the user PATH. On macOS/Linux, binary installs to `~/.bluebox/bin/bluebox`.
 
 Running the installer interactively in a terminal auto-starts `bluebox setup`.
 
@@ -124,10 +125,10 @@ CLI Reference version 4.3 as of last verification. Re-verify flags at docs.blueb
 | `bluebox setup` | Run/re-run onboarding: auth, coding-agent skill install, opens Setup page for repo + ingest token. Auto-detects and installs skills for Claude Code, Kiro, GitHub Copilot, Cursor, and OpenCode. |
 | `bluebox auth login` | Device-authorization-flow login; token stored in OS keyring (macOS Keychain, Linux Secret Service) or file fallback. Sign-in tokens expire after **14 days of inactivity**. Flags: `--no-browser`, `--no-keyring`, `--device-label`. |
 | `bluebox auth logout` | Clear stored credentials. |
-| `bluebox skills install` | Manually install Bluebox skills to `.agents/skills/` or a specified directory. Flags: `--claude`, `--cursor`, `--generic` (and others per agent convention). |
+| `bluebox skills install` | Manually install Bluebox skills to `.agents/skills/` or a specified directory. Recognizes per-agent flags for Claude Code, Cursor, Windsurf, GitHub Copilot, Kiro, Codex, or OpenCode; pass the matching flag instead of `--generic` if the target agent uses one of these conventions. |
 | `bluebox skills list` | List available skills with name, version, and description. `--wide` prevents truncation of long descriptions. |
 | `bluebox skills refresh` | Update installed skills to latest versions. `--force` overwrites locally-edited skill files. |
-| `bluebox ask "<question>"` | Query live production data from the terminal; streams answer to stdout, progress to stderr. See flags below. |
+| `bluebox ask "<question>"` | Query live production data from the terminal; streams answer to stdout, progress to stderr. Every answer includes an **Evidence** section: what was queried, the numbers behind the conclusion, and any coverage gaps stated explicitly. See flags below. |
 | `bluebox otlp-endpoint` | Print the workspace's OTLP ingest endpoint (URL only, never the token). |
 | `bluebox workspace list` | List workspaces and mark the active one. `--json` for structured output. |
 | `bluebox workspace switch <id>` | Switch active workspace. Run without arguments for interactive mode. |
@@ -144,6 +145,12 @@ CLI Reference version 4.3 as of last verification. Re-verify flags at docs.blueb
 | `--conversation-id <uuid>` | Resume a specific conversation thread |
 | `--continue` | Resume the most recent conversation |
 | `--workspace <id>` | Target a specific workspace for one call without changing the saved default |
+
+**Usage notes:**
+- **Git-origin auto-detection:** by default `bluebox ask` detects the target repo from the local git origin; `--repo-url` is only needed when there's no local git origin or it doesn't match the intended repo (e.g., running from CI).
+- **Flag ordering:** put flags before the question — a flag written after the question is treated as part of the question text itself.
+- **Empty-question validation:** `ask` needs an actual question; running it with nothing, or with an empty or blank one, is refused.
+- **Multi-service repos:** when gathering context, the CLI sends the *modules* your changes touch — the directories that hold a project manifest — not a long list of individual files.
 
 **Environment variables:**
 
@@ -188,7 +195,7 @@ Advanced settings (under "Advanced"): timezone (defaults to browser timezone, ma
 | Expired | End date passed; routine stopped permanently |
 | Limit reached | Max occurrences hit; routine stopped permanently |
 
-**Resource limits:** every run (scheduled or manual) counts against the workspace's run allowance. An hourly routine consumes 24 allocations per day. When the limit is reached, new fires are recorded as Skipped (throttled).
+**Resource limits:** every run (scheduled or manual) counts against the workspace's run allowance. An hourly routine consumes 24 allocations per day. When the limit is reached, new fires are recorded as Skipped (throttled). This is separate from the workspace-wide daily AI usage cap (see FAQ), which can stop a run mid-execution and mark it Limit reached rather than skipping it before it starts.
 
 **Key constraints:**
 - Schedule type cannot be changed after creation.
@@ -297,7 +304,8 @@ Occasionally the agent gets stuck retrying a step without progress; it now retur
 
 - **No ML/agent code required**: Bluebox is SaaS; connect GitHub and the observability platform through the web UI.
 - **Coding agent support:** Claude Code and Kiro fully supported; GitHub Copilot, Cursor, OpenCode experimental; any other agent needs manual skill installation via `bluebox skills install`.
-- **OS support (CLI):** macOS, Linux, and Windows all natively supported as of Getting Started v6.11 (2026-08-19). WSL2 is no longer required for Windows.
+- **AI usage cap:** every workspace has a daily AI usage limit. If a running task or investigation hits that limit before it finishes, Bluebox stops it and marks it **Limit reached** — distinct from the Routines-specific "Skipped (throttled)" workspace run-allowance limit below.
+- **OS support (CLI):** macOS and Linux fully supported. Windows installs natively (experimental) or via WSL2 (fully supported) — WSL2 is still the safer recommendation until native Windows support graduates out of experimental.
 - **Regional availability:** new sign-ups can be blocked in some countries for legal/compliance reasons; this check applies only to new sign-ups, not existing accounts.
 - **Can it run without an observability platform connected?** Yes for GitHub-only investigation, but diagnosis quality is explicitly stated to be significantly better with live telemetry connected.
 - **Session timeout:** signed out after inactivity, with a warning first; active tab interaction (click/type/scroll) keeps the session alive, an idle background tab does not.
